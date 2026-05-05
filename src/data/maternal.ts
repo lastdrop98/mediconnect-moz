@@ -1,7 +1,3 @@
-export const MATERNAL_WEEKS: Record<number, { baby: string; mother: string; care: string; alert: string }> = {
-  default: { baby: "O bebé continua a crescer e desenvolver-se.", mother: "Pode sentir alterações de humor e cansaço.", care: "Mantenha consultas pré-natais regulares e alimentação saudável.", alert: "Procure ajuda se tiver sangramento, dor de cabeça forte ou febre." } as any,
-};
-
 export function getWeekInfo(week: number) {
   if (week <= 12) return {
     baby: "O bebé tem o tamanho de um limão. Os órgãos principais já estão a formar-se.",
