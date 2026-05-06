@@ -1,27 +1,31 @@
 import ChatWindow from "@/components/ChatWindow";
+import { Brain, Stethoscope, Pill, Heart, Bandage } from "lucide-react";
 
 const PILLS = [
-  { emoji: "🩺", label: "Verificar Sintomas", prompt: "Estou com alguns sintomas. Pode ajudar-me a perceber?" },
-  { emoji: "💊", label: "Medicamentos", prompt: "Tenho dúvidas sobre um medicamento." },
-  { emoji: "❤️", label: "Dicas de Saúde", prompt: "Dê-me dicas para melhorar a minha saúde." },
-  { emoji: "🚑", label: "Primeiros Socorros", prompt: "Como prestar primeiros socorros básicos?" },
+  { icon: Stethoscope, label: "Verificar Sintomas" },
+  { icon: Pill, label: "Medicamentos" },
+  { icon: Heart, label: "Dicas de Saúde" },
+  { icon: Bandage, label: "Primeiros Socorros" },
 ];
 
 export default function AIPage() {
   return (
-    <div className="max-w-5xl mx-auto space-y-4 h-[calc(100vh-9rem)] flex flex-col">
-      <section className="gradient-purple text-white rounded-2xl p-5 shadow-elevated">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">🧠</span>
+    <div className="max-w-5xl mx-auto space-y-4 h-[calc(100vh-9rem)] flex flex-col animate-fade-in">
+      <section className="relative overflow-hidden bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl p-5 shadow-elevated">
+        <div className="absolute -top-10 -right-10 w-44 h-44 bg-white/10 blur-3xl rounded-full" />
+        <div className="relative flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center animate-float">
+            <Brain className="w-6 h-6" />
+          </div>
           <div>
             <h2 className="font-display text-xl font-bold">Assistente de Saúde IA</h2>
             <p className="text-sm opacity-90">Disponível 24/7 — em português</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+        <div className="relative grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
           {PILLS.map((p) => (
-            <div key={p.label} className="bg-white/15 backdrop-blur rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-1.5">
-              <span>{p.emoji}</span> {p.label}
+            <div key={p.label} className="bg-white/15 backdrop-blur rounded-xl px-3 py-2 text-sm font-semibold flex items-center gap-2">
+              <p.icon className="w-4 h-4" /> {p.label}
             </div>
           ))}
         </div>
