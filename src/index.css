@@ -111,6 +111,9 @@
 
 @layer utilities {
   .gradient-hero { background: var(--gradient-hero); }
+  .hover-lift { @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated; }
+  .press { @apply transition-transform active:scale-95; }
+  .glass { @apply bg-card/70 backdrop-blur-xl border border-white/10; }
   .gradient-purple { background: var(--gradient-purple); }
   .gradient-pink { background: var(--gradient-pink); }
   .gradient-warm { background: var(--gradient-warm); }

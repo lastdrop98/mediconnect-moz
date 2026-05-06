@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import userAvatar from "@/assets/user-avatar.jpg";
 
 export type Plan = "gratuito" | "essencial" | "familia";
 export type Page =
@@ -9,11 +10,12 @@ export type Appointment = { id: string; doctorId: string; doctorName: string; sp
 export type Transaction = { id: string; date: string; type: "consulta" | "assinatura" | "contribuicao"; description: string; amountMzn: number; status: "Concluída" | "Pendente" };
 
 type Ctx = {
-  user: { name: string; email: string; emoji: string };
+  user: { name: string; email: string; avatar: string };
   plan: Plan; setPlan: (p: Plan) => void;
   page: Page; setPage: (p: Page) => void;
   appointments: Appointment[]; addAppointment: (a: Appointment) => void;
   transactions: Transaction[]; addTransaction: (t: Transaction) => void;
+  cart: number; addToCart: () => void;
   darkMode: boolean; toggleDark: () => void;
 };
 
@@ -28,6 +30,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     try { return JSON.parse(localStorage.getItem("mc_tx") ?? "[]"); } catch { return []; }
   });
+  const [cart, setCart] = useState(0);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("mc_dark") === "1");
 
   useEffect(() => { localStorage.setItem("mc_plan", plan); }, [plan]);
@@ -40,10 +43,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppCtx.Provider value={{
-      user: { name: "Shelton Chibindji", email: "sheltonbrjr@gmail.com", emoji: "👤" },
+      user: { name: "Shelton Chibindji", email: "sheltonbrjr@gmail.com", avatar: userAvatar },
       plan, setPlan, page, setPage,
       appointments, addAppointment: (a) => setAppointments((p) => [a, ...p]),
       transactions, addTransaction: (t) => setTransactions((p) => [t, ...p]),
+      cart, addToCart: () => setCart((c) => c + 1),
       darkMode, toggleDark: () => setDarkMode((d) => !d),
     }}>
       {children}

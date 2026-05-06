@@ -1,7 +1,9 @@
 import { useApp } from "@/context/AppContext";
+import { Pencil, Bell, Moon, Globe, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
-  const { user, plan } = useApp();
+  const { user, plan, toggleDark, darkMode } = useApp();
 
   const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="bg-card rounded-2xl p-5 shadow-card">
@@ -15,16 +17,25 @@ export default function ProfilePage() {
     </div>
   );
 
+  const settings = [
+    { icon: Bell, label: "Notificações", action: () => toast.success("Notificações ativadas") },
+    { icon: Moon, label: darkMode ? "Tema Claro" : "Tema Escuro", action: toggleDark },
+    { icon: Globe, label: "Idioma: PT-MZ", action: () => toast("Idioma: Português (Moçambique)") },
+    { icon: Lock, label: "Privacidade", action: () => toast("Política de privacidade") },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
+    <div className="max-w-4xl mx-auto space-y-5 animate-fade-in">
       <section className="gradient-hero text-white rounded-2xl p-6 shadow-elevated flex flex-wrap items-center gap-4">
-        <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-4xl">{user.emoji}</div>
+        <img src={user.avatar} alt={user.name} className="w-20 h-20 rounded-2xl object-cover ring-4 ring-white/30" />
         <div className="flex-1 min-w-[200px]">
           <h2 className="font-display text-2xl font-extrabold">{user.name}</h2>
           <p className="opacity-90">{user.email}</p>
           <span className="inline-block mt-2 bg-white/20 backdrop-blur px-3 py-1 rounded-full text-sm font-semibold capitalize">Plano: {plan}</span>
         </div>
-        <button className="bg-white text-primary rounded-xl px-4 py-2 font-semibold">✏️ Editar Perfil</button>
+        <button onClick={() => toast("Edição de perfil em breve")} className="bg-white text-primary rounded-xl px-4 py-2 font-semibold flex items-center gap-2 press">
+          <Pencil className="w-4 h-4" /> Editar
+        </button>
       </section>
 
       <Card title="Informações Pessoais">
@@ -46,9 +57,10 @@ export default function ProfilePage() {
 
       <Card title="Definições">
         <div className="grid grid-cols-2 gap-2">
-          {[["🔔", "Notificações"], ["🌙", "Modo Escuro"], ["🌍", "Idioma"], ["🔒", "Privacidade"]].map(([e, l]) => (
-            <button key={l} className="bg-muted rounded-xl p-3 text-left flex items-center gap-2 hover:bg-muted/70">
-              <span className="text-xl">{e}</span><span className="font-semibold text-sm">{l}</span>
+          {settings.map((s) => (
+            <button key={s.label} onClick={s.action} className="bg-muted rounded-xl p-3 text-left flex items-center gap-2 hover:bg-muted/70 press">
+              <s.icon className="w-5 h-5 text-primary" />
+              <span className="font-semibold text-sm">{s.label}</span>
             </button>
           ))}
         </div>

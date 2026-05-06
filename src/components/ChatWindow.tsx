@@ -58,8 +58,11 @@ export default function ChatWindow({ context, contextData, initialMessage, place
           return (
             <div key={i} className={cn("flex gap-2 animate-fade-in", m.role === "user" ? "justify-end" : "justify-start")}>
               {m.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
-                  {context === "psychology" ? "💙" : context === "telemedicine" ? (contextData?.emoji ?? "👨‍⚕️") : context === "maternal" ? "👶" : "🧠"}
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold bg-gradient-to-br",
+                  context === "psychology" ? "from-pink-500 to-rose-500" :
+                  context === "telemedicine" ? "from-blue-500 to-cyan-500" :
+                  context === "maternal" ? "from-pink-400 to-rose-400" : "from-violet-500 to-purple-600")}>
+                  {context === "psychology" ? "♥" : context === "telemedicine" ? "Dr" : context === "maternal" ? "♡" : "AI"}
                 </div>
               )}
               <div className={cn("max-w-[80%] rounded-2xl px-4 py-2", m.role === "user" ? accentBubble : "bg-muted text-foreground")}>
