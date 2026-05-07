@@ -1,53 +1,142 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import userAvatar from "@/assets/user-avatar.jpg";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session, User } from "@supabase/supabase-js";
 
-export type Plan = "gratuito" | "essencial" | "familia";
+export type Plan = "free" | "essential" | "family";
 export type Page =
   | "inicio" | "agendar" | "medicos" | "telemedicina" | "ia" | "psicologia"
   | "mapa" | "farmacia" | "materna" | "edu" | "historico" | "pagamentos" | "emergencia" | "perfil";
 
-export type Appointment = { id: string; doctorId: string; doctorName: string; specialty: string; date: string; time: string; status: "Confirmada" };
-export type Transaction = { id: string; date: string; type: "consulta" | "assinatura" | "contribuicao"; description: string; amountMzn: number; status: "Concluída" | "Pendente" };
+export type Profile = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  blood_type: string | null;
+  plan: Plan;
+};
+
+export type DoctorRow = {
+  id: string; name: string; specialty: string; hospital: string | null;
+  experience_years: number; price_mzn: number; rating: number;
+  is_online: boolean; bio: string | null; avatar_url: string | null;
+};
+
+export type Appointment = {
+  id: string; doctor_id: string | null; doctorName?: string; specialty: string | null;
+  appointment_date: string | null; appointment_time: string | null; status: string; modality: string | null;
+};
+
+export type Transaction = {
+  id: string; created_at: string; description: string | null;
+  amount_mzn: number; payment_method: string; status: string;
+};
+
+export type HealthAlert = { id: string; title: string; description: string | null; alert_type: string };
 
 type Ctx = {
-  user: { name: string; email: string; avatar: string };
-  plan: Plan; setPlan: (p: Plan) => void;
+  session: Session | null;
+  user: User | null;
+  profile: Profile | null;
+  loading: boolean;
   page: Page; setPage: (p: Page) => void;
-  appointments: Appointment[]; addAppointment: (a: Appointment) => void;
-  transactions: Transaction[]; addTransaction: (t: Transaction) => void;
-  cart: number; addToCart: () => void;
+  doctors: DoctorRow[];
+  appointments: Appointment[];
+  transactions: Transaction[];
+  alerts: HealthAlert[];
+  refreshAppointments: () => Promise<void>;
+  refreshTransactions: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  signOut: () => Promise<void>;
   darkMode: boolean; toggleDark: () => void;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [plan, setPlan] = useState<Plan>(() => (localStorage.getItem("mc_plan") as Plan) ?? "gratuito");
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<Page>("inicio");
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    try { return JSON.parse(localStorage.getItem("mc_appts") ?? "[]"); } catch { return []; }
-  });
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    try { return JSON.parse(localStorage.getItem("mc_tx") ?? "[]"); } catch { return []; }
-  });
-  const [cart, setCart] = useState(0);
+  const [doctors, setDoctors] = useState<DoctorRow[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [alerts, setAlerts] = useState<HealthAlert[]>([]);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("mc_dark") === "1");
 
-  useEffect(() => { localStorage.setItem("mc_plan", plan); }, [plan]);
-  useEffect(() => { localStorage.setItem("mc_appts", JSON.stringify(appointments)); }, [appointments]);
-  useEffect(() => { localStorage.setItem("mc_tx", JSON.stringify(transactions)); }, [transactions]);
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("mc_dark", darkMode ? "1" : "0");
   }, [darkMode]);
 
+  // Auth listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+      setUser(sess?.user ?? null);
+    });
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) { setProfile(null); return; }
+    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    if (data) setProfile(data as Profile);
+  }, [user]);
+
+  const refreshAppointments = useCallback(async () => {
+    if (!user) { setAppointments([]); return; }
+    const { data } = await supabase
+      .from("appointments")
+      .select("*, doctors(name)")
+      .eq("patient_id", user.id)
+      .order("created_at", { ascending: false });
+    setAppointments(((data as any[]) ?? []).map((r) => ({
+      id: r.id, doctor_id: r.doctor_id, doctorName: r.doctors?.name ?? "Médico",
+      specialty: r.specialty, appointment_date: r.appointment_date,
+      appointment_time: r.appointment_time, status: r.status, modality: r.modality,
+    })));
+  }, [user]);
+
+  const refreshTransactions = useCallback(async () => {
+    if (!user) { setTransactions([]); return; }
+    const { data } = await supabase
+      .from("payments").select("*").eq("patient_id", user.id).order("created_at", { ascending: false });
+    setTransactions((data as any[]) ?? []);
+  }, [user]);
+
+  // Load data on user change
+  useEffect(() => {
+    if (!user) { setProfile(null); setAppointments([]); setTransactions([]); return; }
+    refreshProfile();
+    refreshAppointments();
+    refreshTransactions();
+  }, [user, refreshProfile, refreshAppointments, refreshTransactions]);
+
+  // Load global data (doctors, alerts) when authenticated
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("doctors").select("*").eq("is_active", true).then(({ data }) => setDoctors((data as DoctorRow[]) ?? []));
+    supabase.from("health_alerts").select("*").eq("is_active", true).then(({ data }) => setAlerts((data as HealthAlert[]) ?? []));
+  }, [user]);
+
+  const signOut = async () => { await supabase.auth.signOut(); };
+
   return (
     <AppCtx.Provider value={{
-      user: { name: "Shelton Chibindji", email: "sheltonbrjr@gmail.com", avatar: userAvatar },
-      plan, setPlan, page, setPage,
-      appointments, addAppointment: (a) => setAppointments((p) => [a, ...p]),
-      transactions, addTransaction: (t) => setTransactions((p) => [t, ...p]),
-      cart, addToCart: () => setCart((c) => c + 1),
+      session, user, profile, loading,
+      page, setPage,
+      doctors, appointments, transactions, alerts,
+      refreshAppointments, refreshTransactions, refreshProfile,
+      signOut,
       darkMode, toggleDark: () => setDarkMode((d) => !d),
     }}>
       {children}

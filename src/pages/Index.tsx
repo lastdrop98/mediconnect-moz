@@ -1,4 +1,4 @@
-import { AppProvider, useApp } from "@/context/AppContext";
+import { useApp } from "@/context/AppContext";
 import AppLayout from "@/components/AppLayout";
 import HomePage from "./HomePage";
 import SchedulePage from "./SchedulePage";
@@ -36,10 +36,6 @@ function Router() {
   }
 }
 
-const Index = () => (
-  <AppProvider>
-    <AppLayout><Router /></AppLayout>
-  </AppProvider>
-);
-
-export default Index;
+export default function Index() {
+  return <AppLayout><Router /></AppLayout>;
+}
