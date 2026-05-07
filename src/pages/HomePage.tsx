@@ -1,6 +1,4 @@
 import { useApp } from "@/context/AppContext";
-import { DOCTORS } from "@/data/doctors";
-import { DoctorAvatar } from "@/components/DoctorAvatar";
 import { IconBadge } from "@/components/IconBadge";
 import {
   Calendar, Stethoscope, FileText, Activity, CalendarDays, Brain,
@@ -16,13 +14,21 @@ const greeting = () => {
 const fmtDate = () =>
   new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+const ALERT_ICONS: Record<string, { icon: any; gradient: string; border: string }> = {
+  vacina: { icon: Megaphone, gradient: "from-amber-500 to-orange-500", border: "border-warning" },
+  surto: { icon: Siren, gradient: "from-red-500 to-orange-500", border: "border-destructive" },
+  lembrete: { icon: Pill, gradient: "from-green-500 to-emerald-500", border: "border-success" },
+  informacao: { icon: Activity, gradient: "from-blue-500 to-cyan-500", border: "border-primary" },
+};
+
 export default function HomePage() {
-  const { user, setPage, appointments } = useApp();
-  const onlineDoctors = DOCTORS.filter((d) => d.online).slice(0, 4);
+  const { profile, user, setPage, appointments, doctors, alerts } = useApp();
+  const onlineDoctors = doctors.filter((d) => d.is_online).slice(0, 4);
+  const firstName = (profile?.full_name || user?.email?.split("@")[0] || "Utilizador").split(" ")[0];
 
   const stats = [
     { icon: Calendar, label: "Consultas", value: appointments.length },
-    { icon: Stethoscope, label: "Médicos Online", value: DOCTORS.filter((d) => d.online).length },
+    { icon: Stethoscope, label: "Médicos Online", value: doctors.filter((d) => d.is_online).length },
     { icon: FileText, label: "Exames Pendentes", value: 0 },
     { icon: Activity, label: "Estado de Saúde", value: "Bom" },
   ];
@@ -42,7 +48,7 @@ export default function HomePage() {
         <div className="relative">
           <p className="text-sm opacity-90 capitalize">{fmtDate()}</p>
           <h2 className="font-display text-2xl md:text-3xl font-extrabold mt-1">
-            {greeting()}, {user.name.split(" ")[0]} 👋
+            {greeting()}, {firstName} 👋
           </h2>
           <p className="opacity-90 mt-1">Como podemos cuidar da sua saúde hoje?</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
@@ -59,11 +65,8 @@ export default function HomePage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {actions.map((a) => (
-          <button
-            key={a.page}
-            onClick={() => setPage(a.page)}
-            className={`group relative bg-gradient-to-br ${a.gradient} text-white rounded-2xl p-4 text-left shadow-card hover-lift press overflow-hidden`}
-          >
+          <button key={a.page} onClick={() => setPage(a.page)}
+            className={`group relative bg-gradient-to-br ${a.gradient} text-white rounded-2xl p-4 text-left shadow-card hover-lift press overflow-hidden`}>
             <a.icon className="w-7 h-7 mb-2 group-hover:scale-110 transition-transform" />
             <div className="font-semibold">{a.label}</div>
             <ArrowRight className="absolute top-3 right-3 w-4 h-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
@@ -71,26 +74,24 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <button onClick={() => setPage("edu")} className="bg-card rounded-2xl p-5 shadow-card border-l-4 border-warning text-left hover-lift">
-          <div className="flex items-start gap-3">
-            <IconBadge icon={Megaphone} gradient="from-amber-500 to-orange-500" size="md" />
-            <div>
-              <div className="font-semibold">Campanha de Vacinação</div>
-              <p className="text-sm text-muted-foreground mt-1">Vacina contra Malária disponível em centros de saúde de Maputo.</p>
-            </div>
-          </div>
-        </button>
-        <button onClick={() => setPage("farmacia")} className="bg-card rounded-2xl p-5 shadow-card border-l-4 border-success text-left hover-lift">
-          <div className="flex items-start gap-3">
-            <IconBadge icon={Pill} gradient="from-green-500 to-emerald-500" size="md" />
-            <div>
-              <div className="font-semibold">Lembrete de Medicação</div>
-              <p className="text-sm text-muted-foreground mt-1">Não se esqueça de tomar a sua medicação às 20h.</p>
-            </div>
-          </div>
-        </button>
-      </div>
+      {alerts.length > 0 && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {alerts.slice(0, 4).map((a) => {
+            const cfg = ALERT_ICONS[a.alert_type] ?? ALERT_ICONS.informacao;
+            return (
+              <div key={a.id} className={`bg-card rounded-2xl p-5 shadow-card border-l-4 ${cfg.border} hover-lift`}>
+                <div className="flex items-start gap-3">
+                  <IconBadge icon={cfg.icon} gradient={cfg.gradient} size="md" />
+                  <div>
+                    <div className="font-semibold">{a.title}</div>
+                    <p className="text-sm text-muted-foreground mt-1">{a.description}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <button onClick={() => setPage("ia")} className="w-full group relative overflow-hidden bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl p-5 flex items-center justify-between shadow-card hover-lift press">
         <div className="flex items-center gap-3 text-left">
@@ -114,17 +115,17 @@ export default function HomePage() {
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
           {onlineDoctors.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => setPage("telemedicina")}
-              className="bg-card rounded-2xl p-4 shadow-card flex gap-3 text-left hover-lift press"
-            >
-              <DoctorAvatar src={d.avatar} name={d.name} online size={56} />
+            <button key={d.id} onClick={() => setPage("telemedicina")}
+              className="bg-card rounded-2xl p-4 shadow-card flex gap-3 text-left hover-lift press">
+              <div className="relative">
+                <img src={d.avatar_url || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(d.name)}`} alt={d.name} className="w-14 h-14 rounded-2xl object-cover" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-success ring-2 ring-card" />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">{d.name}</div>
                 <div className="text-xs text-primary">{d.specialty}</div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <Star className="w-3 h-3 fill-warning text-warning" /> {d.rating} • {d.priceMzn} MZN
+                  <Star className="w-3 h-3 fill-warning text-warning" /> {d.rating} • {d.price_mzn} MZN
                 </div>
               </div>
             </button>

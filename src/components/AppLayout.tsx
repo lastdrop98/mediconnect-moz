@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
   Bell, Menu, Moon, Sun, X, Home, CalendarDays, Stethoscope, Video, Brain,
-  HeartHandshake, Map, Pill, Baby, BookOpen, FileText, CreditCard, Siren, HeartPulse,
+  HeartHandshake, Map, Pill, Baby, BookOpen, FileText, CreditCard, Siren, HeartPulse, LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useApp, Page } from "@/context/AppContext";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const NAV: { id: Page; label: string; icon: LucideIcon; danger?: boolean; badge?: string }[] = [
   { id: "inicio", label: "Início", icon: Home },
@@ -31,12 +32,21 @@ const TITLES: Record<Page, string> = {
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, page, setPage, darkMode, toggleDark } = useApp();
+  const { profile, user, page, setPage, darkMode, toggleDark, signOut } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "Utilizador";
+  const email = user?.email ?? "";
+  const avatar = profile?.avatar_url || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}`;
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Sessão terminada");
+  };
 
   return (
     <div className="min-h-screen flex w-full bg-background">
-      {/* Sidebar */}
       <aside className={cn(
         "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -82,16 +92,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <button onClick={() => { setPage("perfil"); setMobileOpen(false); }} className="m-3 p-3 rounded-xl bg-sidebar-accent flex items-center gap-3 hover:bg-muted transition-colors">
-          <img src={user.avatar} alt={user.name} loading="lazy" className="w-10 h-10 rounded-full object-cover" />
-          <div className="text-left flex-1 min-w-0">
-            <div className="font-semibold text-sm text-sidebar-foreground truncate">{user.name}</div>
-            <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-          </div>
-        </button>
+        <div className="m-3 p-3 rounded-xl bg-sidebar-accent flex items-center gap-3">
+          <button onClick={() => { setPage("perfil"); setMobileOpen(false); }} className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80">
+            <img src={avatar} alt={displayName} loading="lazy" className="w-10 h-10 rounded-full object-cover" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm text-sidebar-foreground truncate">{displayName}</div>
+              <div className="text-xs text-muted-foreground truncate">{email}</div>
+            </div>
+          </button>
+          <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive press" aria-label="Sair" title="Sair">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
         <header className="sticky top-0 z-30 bg-card/80 backdrop-blur border-b border-border h-16 flex items-center px-4 gap-3">
           <button className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu className="w-5 h-5" /></button>
@@ -101,11 +115,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
           <button className="p-2 rounded-xl hover:bg-muted transition-colors relative active:scale-90" aria-label="Notificações">
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">3</span>
           </button>
-          <button onClick={() => setPage("perfil")} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-primary/30 hover:ring-primary transition-all" aria-label="Perfil">
-            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-          </button>
+          <div className="relative">
+            <button onClick={() => setMenuOpen((o) => !o)} className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-primary/30 hover:ring-primary transition-all" aria-label="Perfil">
+              <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-12 z-40 w-56 bg-card rounded-xl shadow-elevated border border-border overflow-hidden animate-scale-in">
+                  <div className="p-3 border-b border-border">
+                    <div className="font-semibold text-sm truncate">{displayName}</div>
+                    <div className="text-xs text-muted-foreground truncate">{email}</div>
+                  </div>
+                  <button onClick={() => { setPage("perfil"); setMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2">
+                    <Home className="w-4 h-4" /> Meu Perfil
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-sm hover:bg-destructive/10 text-destructive flex items-center gap-2 border-t border-border">
+                    <LogOut className="w-4 h-4" /> Terminar sessão
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden animate-fade-in" key={page}>{children}</main>
       </div>
