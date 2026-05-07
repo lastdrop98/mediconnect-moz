@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MEDICATIONS, MED_CATEGORIES } from "@/data/medications";
-import { useApp } from "@/context/AppContext";
+
 import { Search, MapPin, Phone, Camera, Pill, ShoppingCart, X, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -17,7 +17,8 @@ const CATEGORY_ICON: Record<string, string> = {
 };
 
 export default function PharmacyPage() {
-  const { addToCart, cart } = useApp();
+  const [cart, setCart] = useState(0);
+  const addToCart = () => setCart((c) => c + 1);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);

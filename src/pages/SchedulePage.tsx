@@ -1,37 +1,47 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { DOCTORS, SPECIALTIES } from "@/data/doctors";
+import { SPECIALTIES } from "@/data/doctors";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CalendarDays, Stethoscope, FileText, ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 const DAYS = Array.from({ length: 7 }, (_, i) => {
   const d = new Date(); d.setDate(d.getDate() + i);
-  return { date: d, label: d.toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" }) };
+  return { iso: d.toISOString().slice(0, 10), label: d.toLocaleDateString("pt-PT", { weekday: "short", day: "numeric", month: "short" }) };
 });
 const TIMES = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
 export default function SchedulePage() {
-  const { appointments, addAppointment } = useApp();
+  const { user, doctors, appointments, refreshAppointments } = useApp();
   const [tab, setTab] = useState<"agendadas" | "nova" | "historico">("agendadas");
   const [step, setStep] = useState(1);
   const [specialty, setSpecialty] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const reset = () => { setStep(1); setSpecialty(null); setDay(null); setTime(null); };
 
-  const confirm = () => {
-    const doc = DOCTORS.find((d) => d.specialty.toLowerCase() === specialty!.toLowerCase()) ?? DOCTORS[0];
-    addAppointment({
-      id: `apt-${Date.now()}`,
-      doctorId: doc.id, doctorName: doc.name, specialty: specialty!,
-      date: day!, time: time!, status: "Confirmada",
+  const confirm = async () => {
+    if (!user || !specialty || !day || !time) return;
+    const doc = doctors.find((d) => d.specialty.toLowerCase() === specialty.toLowerCase()) ?? doctors[0];
+    setSaving(true);
+    const { error } = await supabase.from("appointments").insert({
+      patient_id: user.id, doctor_id: doc?.id ?? null, specialty,
+      appointment_date: day, appointment_time: time,
+      status: "confirmed", modality: "online",
     });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    await refreshAppointments();
     toast.success("✓ Consulta agendada com sucesso!");
     reset();
     setTab("agendadas");
   };
+
+  const upcoming = appointments.filter((a) => a.status !== "completed");
+  const history = appointments.filter((a) => a.status === "completed");
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 animate-fade-in">
@@ -47,22 +57,22 @@ export default function SchedulePage() {
 
       {tab === "agendadas" && (
         <div className="space-y-3">
-          {appointments.length === 0 ? (
+          {upcoming.length === 0 ? (
             <div className="bg-card rounded-2xl p-10 text-center shadow-card animate-fade-in">
               <CalendarDays className="w-14 h-14 mx-auto text-muted-foreground mb-3" />
               <p className="text-muted-foreground mb-4">Nenhuma consulta agendada</p>
               <button onClick={() => setTab("nova")} className="bg-primary text-primary-foreground px-5 py-2 rounded-xl font-semibold press">+ Agendar Consulta</button>
             </div>
-          ) : appointments.map((a) => (
+          ) : upcoming.map((a) => (
             <div key={a.id} className="bg-card rounded-2xl p-4 shadow-card flex flex-wrap items-center gap-3 hover-lift">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold">{a.doctorName}</div>
-                <div className="text-sm text-muted-foreground">{a.specialty} • {a.date} às {a.time}</div>
+                <div className="text-sm text-muted-foreground">{a.specialty} • {a.appointment_date} às {a.appointment_time}</div>
               </div>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-success/15 text-success-dark">{a.status}</span>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-success/15 text-success-dark capitalize">{a.status}</span>
             </div>
           ))}
         </div>
@@ -105,9 +115,9 @@ export default function SchedulePage() {
               <h4 className="font-semibold mb-3">Escolha dia e hora</h4>
               <div className="grid grid-cols-3 md:grid-cols-7 gap-2 mb-5">
                 {DAYS.map((d) => (
-                  <button key={d.label} onClick={() => setDay(d.label)}
+                  <button key={d.iso} onClick={() => setDay(d.iso)}
                     className={cn("p-3 rounded-xl border-2 text-xs font-semibold capitalize text-center press",
-                      day === d.label ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
+                      day === d.iso ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
                     {d.label}
                   </button>
                 ))}
@@ -135,15 +145,15 @@ export default function SchedulePage() {
               <h4 className="font-semibold mb-3">Confirmar</h4>
               <div className="bg-success/10 border-2 border-success/30 rounded-xl p-5 space-y-2">
                 <div><span className="text-muted-foreground">Especialidade:</span> <strong>{specialty}</strong></div>
-                <div><span className="text-muted-foreground">Dia:</span> <strong className="capitalize">{day}</strong></div>
+                <div><span className="text-muted-foreground">Dia:</span> <strong>{day}</strong></div>
                 <div><span className="text-muted-foreground">Hora:</span> <strong>{time}</strong></div>
               </div>
               <div className="mt-5 flex justify-between">
                 <button onClick={() => setStep(2)} className="px-5 py-2 rounded-xl font-semibold border border-border press flex items-center gap-1">
                   <ChevronLeft className="w-4 h-4" /> Voltar
                 </button>
-                <button onClick={confirm} className="bg-success text-success-foreground px-5 py-2 rounded-xl font-semibold press flex items-center gap-2">
-                  <Check className="w-4 h-4" /> Confirmar Agendamento
+                <button disabled={saving} onClick={confirm} className="bg-success text-success-foreground px-5 py-2 rounded-xl font-semibold press flex items-center gap-2 disabled:opacity-60">
+                  <Check className="w-4 h-4" /> {saving ? "A guardar..." : "Confirmar Agendamento"}
                 </button>
               </div>
             </div>
@@ -152,9 +162,18 @@ export default function SchedulePage() {
       )}
 
       {tab === "historico" && (
-        <div className="bg-card rounded-2xl p-10 text-center shadow-card animate-fade-in">
-          <FileText className="w-14 h-14 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">Sem histórico de consultas anteriores.</p>
+        <div className="space-y-3">
+          {history.length === 0 ? (
+            <div className="bg-card rounded-2xl p-10 text-center shadow-card animate-fade-in">
+              <FileText className="w-14 h-14 mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">Sem histórico de consultas anteriores.</p>
+            </div>
+          ) : history.map((a) => (
+            <div key={a.id} className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-3">
+              <Stethoscope className="w-5 h-5 text-primary" />
+              <div className="flex-1"><div className="font-semibold">{a.doctorName}</div><div className="text-sm text-muted-foreground">{a.specialty} • {a.appointment_date}</div></div>
+            </div>
+          ))}
         </div>
       )}
     </div>
