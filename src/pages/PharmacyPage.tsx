@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MEDICATIONS, MED_CATEGORIES } from "@/data/medications";
-import { useApp } from "@/context/AppContext";
+
 import { Search, MapPin, Phone, Camera, Pill, ShoppingCart, X, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
