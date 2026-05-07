@@ -17,7 +17,8 @@ const CATEGORY_ICON: Record<string, string> = {
 };
 
 export default function PharmacyPage() {
-  const { addToCart, cart } = useApp();
+  const [cart, setCart] = useState(0);
+  const addToCart = () => setCart((c) => c + 1);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);

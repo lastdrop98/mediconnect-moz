@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useApp, Plan } from "@/context/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Smartphone, CreditCard, Wallet, Banknote, Check, HeartHandshake, Loader2, Receipt } from "lucide-react";
 
 const PLANS: { id: Plan; name: string; price: number; popular?: boolean; features: string[]; missing: string[]; gradient: string }[] = [
-  { id: "gratuito", name: "Gratuito", price: 0, gradient: "from-slate-500 to-slate-700",
+  { id: "free", name: "Gratuito", price: 0, gradient: "from-slate-500 to-slate-700",
     features: ["Apoio Psicológico IA (ilimitado)", "Assistente IA (3/dia)", "Edu-Saúde", "Emergência e mapa básico", "Saúde Materna (básico)"],
     missing: ["Telemedicina com médico real", "Agendamento de consultas", "Farmácia Digital completa", "Histórico médico completo"] },
-  { id: "essencial", name: "Essencial", price: 299, popular: true, gradient: "from-blue-500 to-cyan-500",
+  { id: "essential", name: "Essencial", price: 299, popular: true, gradient: "from-blue-500 to-cyan-500",
     features: ["Tudo do Gratuito", "2 telemedicinas/mês", "Agendamento ilimitado", "Farmácia Digital completa", "Histórico médico completo", "Lembretes de medicação", "Relatórios PDF"],
     missing: ["Consultas físicas com desconto", "Prioridade nas marcações"] },
-  { id: "familia", name: "Família", price: 599, gradient: "from-violet-600 to-purple-600",
+  { id: "family", name: "Família", price: 599, gradient: "from-violet-600 to-purple-600",
     features: ["Tudo do Essencial", "Até 4 membros", "5 telemedicinas/mês", "Saúde Materna completa", "15% desconto em consultas físicas", "Prioridade nas marcações", "Suporte 24h"], missing: [] },
 ];
 
@@ -24,32 +25,56 @@ const METHODS = [
 ];
 
 export default function PaymentsPage() {
-  const { plan, setPlan, transactions, addTransaction } = useApp();
+  const { user, profile, transactions, refreshTransactions, refreshProfile } = useApp();
+  const plan: Plan = (profile?.plan as Plan) ?? "free";
   const [method, setMethod] = useState("mpesa");
   const [phone, setPhone] = useState("");
   const [processing, setProcessing] = useState(false);
   const [filter, setFilter] = useState("all");
 
-  const subscribe = (p: Plan, price: number) => {
-    if (price === 0) { setPlan(p); toast.success("Plano Gratuito ativo"); return; }
-    if (!phone && method === "mpesa") { toast.error("Insira o número M-Pesa"); return; }
+  const recordPayment = async (description: string, amount: number) => {
+    if (!user) return;
+    await supabase.from("payments").insert({
+      patient_id: user.id, amount_mzn: amount,
+      payment_method: method, status: "completed", description,
+    });
+    await refreshTransactions();
+  };
+
+  const subscribe = async (p: Plan, price: number) => {
+    if (!user) return;
+    if (price === 0) {
+      await supabase.from("profiles").update({ plan: "free" }).eq("id", user.id);
+      await refreshProfile();
+      toast.success("Plano Gratuito ativo");
+      return;
+    }
+    if (!phone && method === "mpesa") return toast.error("Insira o número M-Pesa");
     setProcessing(true);
-    setTimeout(() => {
+    setTimeout(async () => {
+      await supabase.from("profiles").update({ plan: p }).eq("id", user.id);
+      await recordPayment(`Plano ${PLANS.find(x => x.id === p)?.name}`, price);
+      await refreshProfile();
       setProcessing(false);
-      setPlan(p);
-      addTransaction({ id: `tx-${Date.now()}`, date: new Date().toLocaleDateString("pt-PT"), type: "assinatura", description: `Plano ${PLANS.find(x => x.id === p)?.name}`, amountMzn: price, status: "Concluída" });
       toast.success(`✅ Pagamento de ${price} MZN confirmado via ${METHODS.find(m => m.id === method)?.label}!`);
     }, 3000);
   };
 
+  const completed = transactions.filter((t) => t.status === "completed");
   const stats = [
-    { label: "Total Pago", value: transactions.filter(t => t.status === "Concluída").reduce((a, b) => a + b.amountMzn, 0), color: "text-success", money: true },
-    { label: "Pendente", value: transactions.filter(t => t.status === "Pendente").reduce((a, b) => a + b.amountMzn, 0), color: "text-warning", money: true },
+    { label: "Total Pago", value: completed.reduce((a, b) => a + Number(b.amount_mzn), 0), color: "text-success", money: true },
+    { label: "Pendente", value: transactions.filter(t => t.status === "pending").reduce((a, b) => a + Number(b.amount_mzn), 0), color: "text-warning", money: true },
     { label: "Transações", value: transactions.length, color: "text-primary" },
-    { label: "Concluídas", value: transactions.filter(t => t.status === "Concluída").length, color: "text-accent" },
+    { label: "Concluídas", value: completed.length, color: "text-accent" },
   ];
 
-  const filteredTx = filter === "all" ? transactions : transactions.filter(t => t.type === filter);
+  const filteredTx = filter === "all" ? transactions : transactions.filter(t => (t.payment_method ?? "") === filter);
+
+  const contribute = async (n: number) => {
+    if (!user || n <= 0) return;
+    await recordPayment("Fundo Solidário", n);
+    toast.success(`Obrigado pela sua contribuição de ${n} MZN 💚`);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
@@ -82,10 +107,6 @@ export default function PaymentsPage() {
               {p.features.map((f, i) => <li key={i} className="flex items-start gap-2"><Check className="w-4 h-4 text-success shrink-0 mt-0.5" />{f}</li>)}
               {p.missing.map((f, i) => <li key={i} className="text-muted-foreground flex items-start gap-2"><span className="w-4 inline-block">×</span>{f}</li>)}
             </ul>
-            <div className="mt-4 bg-pink/10 text-pink rounded-xl p-2 text-xs flex items-start gap-1.5">
-              <HeartHandshake className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              Parte do seu pagamento financia consultas gratuitas para quem não pode pagar
-            </div>
             <button onClick={() => subscribe(p.id, p.price)} disabled={plan === p.id || processing}
               className={cn("w-full mt-3 rounded-xl py-2.5 font-semibold press flex items-center justify-center gap-2",
                 plan === p.id ? "bg-success/20 text-success cursor-default" :
@@ -118,14 +139,6 @@ export default function PaymentsPage() {
             </p>
           </div>
         )}
-        {method === "card" && (
-          <div className="bg-muted rounded-xl p-4 grid grid-cols-2 gap-2 animate-fade-in">
-            <input placeholder="Número do cartão" className="col-span-2 bg-card rounded-xl px-3 py-2 text-sm focus:outline-none" />
-            <input placeholder="MM/AA" className="bg-card rounded-xl px-3 py-2 text-sm focus:outline-none" />
-            <input placeholder="CVV" className="bg-card rounded-xl px-3 py-2 text-sm focus:outline-none" />
-            <input placeholder="Nome no cartão" className="col-span-2 bg-card rounded-xl px-3 py-2 text-sm focus:outline-none" />
-          </div>
-        )}
       </section>
 
       <section className="relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-2xl p-6 shadow-elevated">
@@ -134,14 +147,14 @@ export default function PaymentsPage() {
           <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center"><HeartHandshake className="w-7 h-7" /></div>
           <div className="flex-1">
             <h3 className="font-display font-bold text-xl">Fundo MediConnect Solidário</h3>
-            <p className="opacity-95 text-sm mt-1">Em Moçambique, milhares de pessoas não podem pagar uma consulta médica. Você pode ajudar.</p>
+            <p className="opacity-95 text-sm mt-1">Em Moçambique, milhares não podem pagar uma consulta médica. Você pode ajudar.</p>
             <div className="bg-white/20 rounded-full h-2 mt-3 overflow-hidden">
               <div className="bg-white h-full transition-all duration-1000" style={{ width: "63%" }} />
             </div>
             <div className="text-sm mt-1">127 consultas gratuitas financiadas este mês</div>
             <div className="flex gap-2 mt-3 flex-wrap">
-              <button onClick={() => { addTransaction({ id: `tx-${Date.now()}`, date: new Date().toLocaleDateString("pt-PT"), type: "contribuicao", description: "Fundo Solidário", amountMzn: 50, status: "Concluída" }); toast.success("Obrigado pela sua contribuição 💚"); }} className="bg-white text-success-dark rounded-xl px-4 py-2 font-semibold text-sm press">Contribuir 50 MZN</button>
-              <button onClick={() => { const v = prompt("Valor a contribuir (MZN):"); const n = Number(v); if (n > 0) { addTransaction({ id: `tx-${Date.now()}`, date: new Date().toLocaleDateString("pt-PT"), type: "contribuicao", description: "Fundo Solidário", amountMzn: n, status: "Concluída" }); toast.success(`Obrigado pela sua contribuição de ${n} MZN 💚`); } }} className="bg-white/20 backdrop-blur rounded-xl px-4 py-2 font-semibold text-sm press">Outro valor</button>
+              <button onClick={() => contribute(50)} className="bg-white text-success-dark rounded-xl px-4 py-2 font-semibold text-sm press">Contribuir 50 MZN</button>
+              <button onClick={() => { const v = prompt("Valor a contribuir (MZN):"); contribute(Number(v)); }} className="bg-white/20 backdrop-blur rounded-xl px-4 py-2 font-semibold text-sm press">Outro valor</button>
             </div>
           </div>
         </div>
@@ -151,7 +164,7 @@ export default function PaymentsPage() {
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 className="font-display font-bold flex items-center gap-2"><Receipt className="w-5 h-5 text-primary" /> Histórico de Transações</h3>
           <div className="flex gap-1 text-xs">
-            {[["all", "Todos"], ["consulta", "Consultas"], ["assinatura", "Assinaturas"], ["contribuicao", "Contribuições"]].map(([k, l]) => (
+            {[["all", "Todos"], ["mpesa", "M-Pesa"], ["emola", "eMola"], ["card", "Cartão"]].map(([k, l]) => (
               <button key={k} onClick={() => setFilter(k)} className={cn("px-3 py-1 rounded-lg font-semibold press", filter === k ? "bg-primary text-primary-foreground" : "bg-muted")}>{l}</button>
             ))}
           </div>
@@ -163,8 +176,8 @@ export default function PaymentsPage() {
         ) : (
           <div className="space-y-2">{filteredTx.map((t) => (
             <div key={t.id} className="flex items-center justify-between bg-muted rounded-xl p-3 hover-lift">
-              <div><div className="font-semibold text-sm">{t.description}</div><div className="text-xs text-muted-foreground">{t.date} • {t.type}</div></div>
-              <div className="text-right"><div className="font-bold">{t.amountMzn} MZN</div><div className="text-xs text-success">{t.status}</div></div>
+              <div><div className="font-semibold text-sm">{t.description}</div><div className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("pt-PT")} • {t.payment_method}</div></div>
+              <div className="text-right"><div className="font-bold">{Number(t.amount_mzn).toLocaleString()} MZN</div><div className="text-xs text-success capitalize">{t.status}</div></div>
             </div>
           ))}</div>
         )}
