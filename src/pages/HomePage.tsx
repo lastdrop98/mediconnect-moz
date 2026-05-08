@@ -27,7 +27,7 @@ export default function HomePage() {
   const firstName = (profile?.full_name || user?.email?.split("@")[0] || "Utilizador").split(" ")[0];
 
   const stats = [
-    { icon: Calendar, label: "Consultas", value: appointments.length },
+    { icon: Calendar, label: "Consultas Agendadas", value: appointments.filter((a) => a.status === "pending" || a.status === "confirmed").length },
     { icon: Stethoscope, label: "Médicos Online", value: doctors.filter((d) => d.is_online).length },
     { icon: FileText, label: "Exames Pendentes", value: 0 },
     { icon: Activity, label: "Estado de Saúde", value: "Bom" },

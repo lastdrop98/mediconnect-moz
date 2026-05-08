@@ -4,7 +4,14 @@ import { SPECIALTIES } from "@/data/doctors";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { CalendarDays, Stethoscope, FileText, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { CalendarDays, Stethoscope, FileText, ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+
+const STATUS_STYLES: Record<string, { label: string; cls: string }> = {
+  pending:   { label: "Pendente",   cls: "bg-warning/15 text-warning-dark" },
+  confirmed: { label: "Confirmada", cls: "bg-success/15 text-success-dark" },
+  cancelled: { label: "Cancelada",  cls: "bg-destructive/15 text-destructive" },
+  completed: { label: "Concluída",  cls: "bg-muted text-muted-foreground" },
+};
 
 const DAYS = Array.from({ length: 7 }, (_, i) => {
   const d = new Date(); d.setDate(d.getDate() + i);
@@ -30,7 +37,7 @@ export default function SchedulePage() {
     const { error } = await supabase.from("appointments").insert({
       patient_id: user.id, doctor_id: doc?.id ?? null, specialty,
       appointment_date: day, appointment_time: time,
-      status: "confirmed", modality: "online",
+      status: "pending", modality: "online",
     });
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -40,8 +47,20 @@ export default function SchedulePage() {
     setTab("agendadas");
   };
 
-  const upcoming = appointments.filter((a) => a.status !== "completed");
-  const history = appointments.filter((a) => a.status === "completed");
+  const cancelAppt = async (id: string) => {
+    const { error } = await supabase.from("appointments").update({ status: "cancelled" }).eq("id", id);
+    if (error) return toast.error(error.message);
+    await refreshAppointments();
+    toast.success("Consulta cancelada");
+  };
+
+  const sortByDate = (a: typeof appointments[number], b: typeof appointments[number]) => {
+    const da = `${a.appointment_date ?? ""} ${a.appointment_time ?? ""}`;
+    const db = `${b.appointment_date ?? ""} ${b.appointment_time ?? ""}`;
+    return da.localeCompare(db);
+  };
+  const upcoming = appointments.filter((a) => a.status === "pending" || a.status === "confirmed").sort(sortByDate);
+  const history = appointments.filter((a) => a.status === "completed" || a.status === "cancelled").sort(sortByDate);
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 animate-fade-in">
@@ -72,7 +91,14 @@ export default function SchedulePage() {
                 <div className="font-semibold">{a.doctorName}</div>
                 <div className="text-sm text-muted-foreground">{a.specialty} • {a.appointment_date} às {a.appointment_time}</div>
               </div>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-success/15 text-success-dark capitalize">{a.status}</span>
+              <span className={cn("text-xs font-bold px-3 py-1 rounded-full", (STATUS_STYLES[a.status] ?? STATUS_STYLES.pending).cls)}>
+                {(STATUS_STYLES[a.status] ?? STATUS_STYLES.pending).label}
+              </span>
+              {a.status === "pending" && (
+                <button onClick={() => cancelAppt(a.id)} className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/10 press flex items-center gap-1">
+                  <X className="w-3 h-3" /> Cancelar
+                </button>
+              )}
             </div>
           ))}
         </div>

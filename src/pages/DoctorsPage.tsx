@@ -30,7 +30,7 @@ export default function DoctorsPage() {
     const { error } = await supabase.from("appointments").insert({
       patient_id: user.id, doctor_id: d.id, specialty: d.specialty,
       appointment_date: date, appointment_time: time,
-      status: "confirmed", modality: "online",
+      status: "pending", modality: "online",
     });
     if (error) return toast.error(error.message);
     await refreshAppointments();
