@@ -6,7 +6,7 @@ import { IconBadge } from "@/components/IconBadge";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 
-type Record = { id: string; type: string; title: string; description: string | null; doctor_name: string | null; date: string | null; created_at: string };
+type MedRecord = { id: string; type: string; title: string; description: string | null; doctor_name: string | null; date: string | null; created_at: string };
 
 const STAT_DEF = [
   { key: "consulta", icon: Stethoscope, label: "Consultas", gradient: "from-blue-500 to-cyan-500" },
@@ -24,13 +24,13 @@ export default function HistoryPage() {
   const { user } = useApp();
   const [tab, setTab] = useState("tudo");
   const [q, setQ] = useState("");
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<MedRecord[]>([]);
   const [showAdd, setShowAdd] = useState(false);
 
   const refresh = async () => {
     if (!user) return;
     const { data } = await supabase.from("medical_records").select("*").eq("patient_id", user.id).order("date", { ascending: false });
-    setRecords((data as Record[]) ?? []);
+    setRecords((data as MedRecord[]) ?? []);
   };
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [user]);
