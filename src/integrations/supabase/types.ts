@@ -121,6 +121,7 @@ export type Database = {
           alert_type: string
           created_at: string
           description: string | null
+          expires_at: string | null
           id: string
           is_active: boolean | null
           title: string
@@ -129,6 +130,7 @@ export type Database = {
           alert_type: string
           created_at?: string
           description?: string | null
+          expires_at?: string | null
           id?: string
           is_active?: boolean | null
           title: string
@@ -137,6 +139,7 @@ export type Database = {
           alert_type?: string
           created_at?: string
           description?: string | null
+          expires_at?: string | null
           id?: string
           is_active?: boolean | null
           title?: string
@@ -286,6 +289,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      prescriptions: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          dosage: string | null
+          id: string
+          medications: string
+          notes: string | null
+          patient_id: string
+          validity_date: string | null
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          dosage?: string | null
+          id?: string
+          medications: string
+          notes?: string | null
+          patient_id: string
+          validity_date?: string | null
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          dosage?: string | null
+          id?: string
+          medications?: string
+          notes?: string | null
+          patient_id?: string
+          validity_date?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
