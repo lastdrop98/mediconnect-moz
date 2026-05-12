@@ -1,5 +1,6 @@
 import { useApp } from "@/context/AppContext";
 import AppLayout from "@/components/AppLayout";
+import PremiumGate from "@/components/PremiumGate";
 import HomePage from "./HomePage";
 import SchedulePage from "./SchedulePage";
 import DoctorsPage from "./DoctorsPage";
