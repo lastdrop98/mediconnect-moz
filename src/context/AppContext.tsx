@@ -141,7 +141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshTransactions = useCallback(async () => {
     if (!user) { setTransactions([]); return; }
     const { data } = await supabase
-      .from("payments").select("*").eq("patient_id", user.id).order("created_at", { ascending: false });
+      .from("transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setTransactions((data as any[]) ?? []);
   }, [user]);
 
