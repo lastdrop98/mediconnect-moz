@@ -111,6 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin">
           {NAV.map((n) => {
             const active = page === n.id;
+            const showUnread = unreadMessages > 0 && (n.id === "telemedicina" || n.id === "doc-mensagens");
             return (
               <button
                 key={n.id}
@@ -126,7 +127,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       : "text-sidebar-foreground hover:bg-sidebar-accent"
                 )}
               >
-                <n.icon className={cn("w-[18px] h-[18px] shrink-0", active && "scale-110")} />
+                <div className="relative shrink-0">
+                  <n.icon className={cn("w-[18px] h-[18px]", active && "scale-110")} />
+                  {showUnread && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center ring-2 ring-sidebar animate-pulse">
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  )}
+                </div>
                 <span className="flex-1 truncate">{n.label}</span>
                 {n.badge && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-success text-success-foreground">
