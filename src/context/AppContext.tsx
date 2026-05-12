@@ -23,6 +23,7 @@ export type Profile = {
   gender: string | null;
   blood_type: string | null;
   plan: Plan;
+  subscription_expires_at: string | null;
 };
 
 export type DoctorRow = {
@@ -40,7 +41,8 @@ export type Appointment = {
 
 export type Transaction = {
   id: string; created_at: string; description: string | null;
-  amount_mzn: number; payment_method: string; status: string;
+  amount_mzn: number; method: string; status: string;
+  type: string; reference: string;
 };
 
 export type HealthAlert = {
