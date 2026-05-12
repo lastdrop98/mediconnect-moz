@@ -92,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [alerts, setAlerts] = useState<HealthAlert[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("mc_dark") === "1");
 
   useEffect(() => {
