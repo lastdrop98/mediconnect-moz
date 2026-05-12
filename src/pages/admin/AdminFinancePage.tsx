@@ -55,7 +55,7 @@ export default function AdminFinancePage() {
               <tr key={r.id} className="border-t border-border">
                 <td className="px-4 py-3">{new Date(r.created_at).toLocaleDateString("pt-PT")}</td>
                 <td className="px-4 py-3">{r.description || "—"}</td>
-                <td className="px-4 py-3">{r.payment_method}</td>
+                <td className="px-4 py-3">{r.method}</td>
                 <td className="px-4 py-3 font-semibold">{fmt(Number(r.amount_mzn))}</td>
                 <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-muted">{r.status}</span></td>
               </tr>
