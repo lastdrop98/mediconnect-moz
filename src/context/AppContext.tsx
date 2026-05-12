@@ -70,6 +70,8 @@ type Ctx = {
   refreshProfile: () => Promise<void>;
   refreshDoctors: () => Promise<void>;
   refreshAlerts: () => Promise<void>;
+  unreadMessages: number;
+  clearUnreadFrom: (peerId: string) => Promise<void>;
   signOut: () => Promise<void>;
   darkMode: boolean; toggleDark: () => void;
 };
