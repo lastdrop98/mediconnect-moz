@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Wallet, TrendingUp, Building2, Clock } from "lucide-react";
 
-type Row = { id: string; created_at: string; description: string | null; amount_mzn: number; payment_method: string; status: string };
+type Row = { id: string; created_at: string; description: string | null; amount_mzn: number; method: string; status: string };
 
 function StatCard({ icon: Icon, label, value, gradient }: any) {
   return (
@@ -19,10 +19,10 @@ function StatCard({ icon: Icon, label, value, gradient }: any) {
 export default function AdminFinancePage() {
   const [rows, setRows] = useState<Row[]>([]);
   useEffect(() => {
-    supabase.from("payments").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows((data as Row[]) ?? []));
+    supabase.from("transactions").select("*").order("created_at", { ascending: false }).then(({ data }) => setRows((data as Row[]) ?? []));
   }, []);
 
-  const paid = rows.filter((r) => r.status === "paid");
+  const paid = rows.filter((r) => r.status === "completed");
   const total = paid.reduce((s, r) => s + Number(r.amount_mzn || 0), 0);
   const doctors = Math.round(total * 0.7);
   const platform = total - doctors;
