@@ -334,6 +334,7 @@ export type Database = {
           id: string
           phone: string | null
           plan: string
+          subscription_expires_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -345,6 +346,7 @@ export type Database = {
           id: string
           phone?: string | null
           plan?: string
+          subscription_expires_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -356,6 +358,43 @@ export type Database = {
           id?: string
           phone?: string | null
           plan?: string
+          subscription_expires_at?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount_mzn: number
+          created_at: string
+          description: string | null
+          id: string
+          method: string
+          reference: string
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount_mzn: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          method: string
+          reference: string
+          status?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount_mzn?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          method?: string
+          reference?: string
+          status?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }

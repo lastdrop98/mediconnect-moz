@@ -150,7 +150,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <img src={avatar} alt={displayName} loading="lazy" className="w-10 h-10 rounded-full object-cover" />
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm text-sidebar-foreground truncate">{displayName}</div>
-              <div className="text-xs text-muted-foreground truncate">{roleSuffix}</div>
+              <div className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
+                <span>{roleSuffix}</span>
+                {role === "patient" && profile?.plan && (
+                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase",
+                    profile.plan === "free" ? "bg-muted text-muted-foreground" :
+                    profile.plan === "essential" ? "bg-primary/15 text-primary" :
+                    "bg-violet-500/15 text-violet-500")}>
+                    {profile.plan}
+                  </span>
+                )}
+              </div>
             </div>
           </button>
           <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-destructive/10 text-destructive press" aria-label="Sair" title="Sair">
