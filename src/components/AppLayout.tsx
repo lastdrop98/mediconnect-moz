@@ -68,7 +68,7 @@ const ROLE_LABELS: Record<Role, { label: string; suffix: string; icon: LucideIco
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { profile, user, page, setPage, role, setRole, darkMode, toggleDark, signOut } = useApp();
+  const { profile, user, page, setPage, role, setRole, darkMode, toggleDark, signOut, unreadMessages } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
