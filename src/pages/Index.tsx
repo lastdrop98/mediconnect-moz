@@ -42,10 +42,10 @@ function Router() {
     case "ia": return <AIPage />;
     case "psicologia": return <PsychologyPage />;
     case "mapa": return <MapPage />;
-    case "farmacia": return <PharmacyPage />;
+    case "farmacia": return <PremiumGate feature="Farmácia Digital completa"><PharmacyPage /></PremiumGate>;
     case "materna": return <MaternalPage />;
     case "edu": return <EduPage />;
-    case "historico": return <HistoryPage />;
+    case "historico": return <PremiumGate feature="Histórico Médico completo"><HistoryPage /></PremiumGate>;
     case "pagamentos": return <PaymentsPage />;
     case "emergencia": return <EmergencyPage />;
     case "perfil": return <ProfilePage />;
