@@ -163,6 +163,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     refreshDoctors(); refreshAlerts();
   }, [user, refreshDoctors, refreshAlerts]);
 
+  const refreshUnread = useCallback(async () => {
+    if (!user) { setUnreadMessages(0); return; }
+    const { count } = await supabase.from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", user.id).eq("is_read", false);
+    setUnreadMessages(count ?? 0);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    refreshUnread();
+    const ch = supabase.channel(`unread-${user.id}`)
+      .on("postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => refreshUnread())
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+        () => refreshUnread())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, refreshUnread]);
+
+  const clearUnreadFrom = useCallback(async (peerId: string) => {
+    if (!user) return;
+    await supabase.from("messages").update({ is_read: true })
+      .eq("receiver_id", user.id).eq("sender_id", peerId).eq("is_read", false);
+    refreshUnread();
+  }, [user, refreshUnread]);
+
   const signOut = async () => { await supabase.auth.signOut(); };
 
   return (
@@ -171,6 +200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       role, setRole, page, setPage,
       doctors, appointments, transactions, alerts,
       refreshAppointments, refreshTransactions, refreshProfile, refreshDoctors, refreshAlerts,
+      unreadMessages, clearUnreadFrom,
       signOut,
       darkMode, toggleDark: () => setDarkMode((d) => !d),
     }}>
